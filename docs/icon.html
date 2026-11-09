@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  html,body{margin:0;width:512px;height:512px;background:transparent;overflow:hidden}
+  .icon{width:512px;height:512px;border-radius:112px;background:#F6F2E9;position:relative;overflow:hidden}
+  .disc{position:absolute;left:86px;top:86px;width:340px;height:340px;border-radius:50%;background:#2F5D4E}
+  .disc::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(246,242,233,.22)}
+  .groove{position:absolute;border-radius:50%;border:2px solid rgba(246,242,233,.32);left:50%;top:50%;transform:translate(-50%,-50%)}
+  .g1{width:250px;height:250px}.g2{width:190px;height:190px}.g3{width:130px;height:130px}
+  .hole{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#F6F2E9;box-shadow:0 0 0 5px rgba(246,242,233,.18)}
+  .notch{position:absolute;right:82px;top:86px;width:44px;height:44px;border-radius:50%;background:#F6F2E9}
+  .grain{position:absolute;inset:0;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+</style></head>
+<body>
+<div class="icon">
+  <div class="disc">
+    <div class="groove g1"></div><div class="groove g2"></div><div class="groove g3"></div>
+    <div class="hole"></div>
+  </div>
+  <div class="notch"></div>
+  <div class="grain"></div>
+</div>
+</body></html>

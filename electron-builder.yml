@@ -1,0 +1,34 @@
+appId: com.bottlecap.downloader
+productName: 开瓶器
+copyright: "Personal use only"
+directories:
+  output: release
+  buildResources: resources
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: resources/bin
+    to: bin
+    filter:
+      - "**/*"
+  - from: resources/FFMPEG-LICENSE.txt
+    to: FFMPEG-LICENSE.txt
+asar: true
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+  executableName: Bottlecap
+  artifactName: Bottlecap-${version}-Setup.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: 开瓶器
+  uninstallDisplayName: 开瓶器
+  deleteAppDataOnUninstall: false

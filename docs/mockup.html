@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>开瓶器 · 汽水音乐下载器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#F6F2E9; --paper-raised:#FCFAF5; --paper-sunken:#EFEAE0;
+    --ink:#1B1A17; --ink-2:#4E4A43; --muted:#8A8378;
+    --rule:rgba(27,26,23,.12); --rule-strong:rgba(27,26,23,.22);
+    --accent:#2F5D4E; --accent-soft:#E2E9E1; --accent-ink:#F7F4EC;
+    --danger:#A33B2A; --warn:#8A6A2F;
+    --font-ui:"Geist","MiSans","PingFang SC","Microsoft YaHei UI",sans-serif;
+    --font-mono:"JetBrains Mono","Geist Mono","Cascadia Mono",monospace;
+    --font-display:"Noto Serif SC","Source Han Serif SC","Songti SC",serif;
+    --shadow-print:0 18px 40px -24px rgba(60,50,35,.35);
+    --shadow-lift:0 8px 24px -18px rgba(60,50,35,.45);
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink); font-family:var(--font-ui);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:60; opacity:.04;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode:multiply;
+  }
+  body::after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+    background:
+      radial-gradient(1100px 600px at 78% -10%, rgba(214,205,184,.55), transparent 60%),
+      radial-gradient(900px 500px at -10% 100%, rgba(226,233,225,.45), transparent 55%);
+  }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  input{font:inherit;color:inherit}
+  ::selection{background:rgba(47,93,78,.16)}
+  .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .app{
+    display:grid; grid-template-columns:224px minmax(0,1fr) 320px;
+    height:100dvh; max-height:100dvh;
+  }
+
+  /* ---------- rail ---------- */
+  .rail{
+    border-right:1px solid var(--rule); display:flex; flex-direction:column;
+    padding:22px 18px 18px; min-height:0; background:rgba(252,250,245,.35);
+  }
+  .brand{display:flex; align-items:center; gap:11px; padding:2px 6px 26px}
+  .brand-mark{
+    width:34px;height:34px;border-radius:50%; display:grid;place-items:center;
+    border:1px solid var(--ink); position:relative; flex:none;
+  }
+  .brand-mark::after{
+    content:""; position:absolute; inset:5px; border-radius:50%; border:1px solid var(--rule-strong);
+  }
+  .brand-mark svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:1.5}
+  .brand-name{font-family:var(--font-display);font-weight:600;font-size:17px;letter-spacing:.02em;line-height:1.2}
+  .brand-sub{font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase}
+
+  .nav{display:flex;flex-direction:column;gap:2px}
+  .nav a{
+    display:grid; grid-template-columns:20px 1fr auto; align-items:center; gap:12px;
+    padding:9px 10px; border-radius:7px; color:var(--ink-2); text-decoration:none;
+    position:relative; transition:background .18s var(--ease), color .18s var(--ease);
+  }
+  .nav a svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .nav a:hover{background:rgba(27,26,23,.045); color:var(--ink)}
+  .nav a.active{background:var(--paper-raised); color:var(--ink); box-shadow:0 1px 0 rgba(255,255,255,.7) inset, var(--shadow-lift)}
+  .nav a.active::before{
+    content:""; position:absolute; left:-10px; top:11px; bottom:11px; width:2px;
+    background:var(--accent); border-radius:2px;
+  }
+  .nav-count{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+  .nav a.active .nav-count{color:var(--accent)}
+
+  .rail-stats{
+    margin-top:26px; padding-top:18px; border-top:1px solid var(--rule);
+    display:grid; grid-template-columns:1fr 1fr; gap:12px 10px;
+  }
+  .stat b{display:block;font-family:var(--font-mono);font-weight:500;font-size:15px;letter-spacing:-.02em}
+  .stat span{font-size:11px;color:var(--muted)}
+  .rail-spacer{flex:1}
+  .account{
+    margin-top:14px; padding:12px; border:1px solid var(--rule); border-radius:10px;
+    background:rgba(252,250,245,.6); display:grid; grid-template-columns:32px 1fr auto; gap:10px; align-items:center;
+    transition:border-color .2s var(--ease), background .2s var(--ease);
+  }
+  .account:hover{border-color:var(--rule-strong); background:var(--paper-raised)}
+  .avatar{
+    width:32px;height:32px;border-radius:50%; display:grid;place-items:center; flex:none;
+    background:linear-gradient(140deg,#3E6B58,#223F35); color:#EDE8DC;
+    font-family:var(--font-display); font-size:14px; font-weight:600;
+  }
+  .account-name{font-size:13px;font-weight:500;line-height:1.3}
+  .account-meta{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex:none}
+  .account-more{color:var(--muted);padding:4px}
+
+  /* ---------- main ---------- */
+  .main{min-width:0; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin}
+  .main::-webkit-scrollbar{width:10px}
+  .main::-webkit-scrollbar-thumb{background:rgba(27,26,23,.14);border:3px solid var(--paper);border-radius:8px}
+
+  .topbar{
+    position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:16px;
+    padding:14px 34px; border-bottom:1px solid var(--rule);
+    background:linear-gradient(var(--paper) 70%, rgba(246,242,233,.86));
+    backdrop-filter:blur(6px);
+  }
+  .crumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);letter-spacing:.01em}
+  .crumbs b{color:var(--ink);font-weight:500}
+  .crumbs svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .conn{
+    display:flex;align-items:center;gap:7px; padding:5px 11px 5px 9px; border-radius:999px;
+    border:1px solid var(--rule); font-size:11.5px; color:var(--ink-2); background:rgba(252,250,245,.6);
+  }
+  .conn .dot{box-shadow:0 0 0 3px rgba(47,93,78,.1)}
+  .icon-btn{
+    width:32px;height:32px;border-radius:7px;display:grid;place-items:center;color:var(--ink-2);
+    transition:background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+  }
+  .icon-btn:hover{background:rgba(27,26,23,.055);color:var(--ink)}
+  .icon-btn:active{transform:scale(.94)}
+  .icon-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .win-controls{display:flex; gap:2px; margin-left:2px; padding-left:10px; border-left:1px solid var(--rule)}
+  .win-controls .icon-btn{width:28px;height:28px;border-radius:6px}
+  .win-controls svg{width:12px;height:12px}
+
+  .page{padding:34px 34px 56px; max-width:1180px; margin:0 auto}
+
+  /* ---------- hero ---------- */
+  .hero{display:grid; grid-template-columns:minmax(0,1.28fr) minmax(0,.72fr); gap:48px; align-items:center}
+  .eyebrow{
+    display:flex;align-items:center;gap:10px; font-family:var(--font-mono); font-size:10.5px;
+    letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin:0 0 18px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--rule-strong)}
+  h1{
+    font-family:var(--font-display); font-weight:600; font-size:clamp(34px,3.5vw,48px);
+    line-height:1.18; letter-spacing:.005em; margin:0 0 18px; text-wrap:balance;
+  }
+  .lede{margin:0 0 26px;color:var(--ink-2);font-size:13.5px;line-height:1.75;max-width:40ch}
+  .lede em{font-style:normal;color:var(--ink);border-bottom:1px solid var(--rule-strong)}
+
+  .paste{display:flex; gap:10px; align-items:stretch; max-width:520px}
+  .paste-field{
+    flex:1; display:flex; align-items:center; gap:10px; padding:0 14px;
+    background:var(--paper-raised); border:1px solid var(--rule-strong); border-radius:8px;
+    transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .paste-field:focus-within{border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,93,78,.1)}
+  .paste-field svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:1.6;flex:none}
+  .paste-field input{flex:1;border:0;outline:0;background:none;height:46px;font-size:13px;letter-spacing:.01em}
+  .paste-field input::placeholder{color:var(--muted)}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px; height:40px; padding:0 18px;
+    border-radius:8px; font-size:13px; font-weight:500; letter-spacing:.01em; white-space:nowrap;
+    transition:transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease);
+  }
+  .btn:active{transform:scale(.985)}
+  .btn-primary{background:var(--accent); color:var(--accent-ink); box-shadow:0 8px 18px -12px rgba(47,93,78,.7)}
+  .btn-primary:hover{background:#28503f; transform:translateY(-1px)}
+  .btn-ghost{border:1px solid var(--rule-strong); color:var(--ink-2); background:transparent}
+  .btn-ghost:hover{background:rgba(27,26,23,.04); color:var(--ink)}
+  .btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .paste .btn{height:48px; padding:0 22px}
+
+  .quick{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+  .quick-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+  .chip{
+    padding:4px 10px;border:1px solid var(--rule);border-radius:999px;color:var(--ink-2);
+    transition:border-color .18s var(--ease), background .18s var(--ease);
+  }
+  .chip:hover{border-color:var(--rule-strong);background:var(--paper-raised)}
+  .chip .mono{font-size:10.5px;color:var(--muted)}
+
+  /* ---------- sleeve ---------- */
+  .hero-art{position:relative; justify-self:end; width:100%; max-width:330px}
+  .sleeve{
+    position:relative; transform:rotate(-1.6deg); transition:transform .5s var(--ease);
+    padding:12px; background:var(--paper-raised); border:1px solid var(--rule);
+    box-shadow:var(--shadow-print), 0 1px 0 rgba(255,255,255,.8) inset; border-radius:6px;
+  }
+  .sleeve:hover{transform:rotate(0deg) translateY(-3px)}
+  .cover{
+    display:block;width:100%;aspect-ratio:1;border-radius:3px;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(27,26,23,.1);
+  }
+  .cover svg{display:block;width:100%;height:100%}
+  .sleeve-caption{display:flex;justify-content:space-between;align-items:baseline;padding:11px 2px 1px;font-size:10px;color:var(--muted);letter-spacing:.06em}
+  .sleeve-caption b{font-family:var(--font-display);font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink)}
+  .params{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:0; margin-top:18px;
+    border:1px solid var(--rule); border-radius:6px; overflow:hidden; background:rgba(252,250,245,.55);
+  }
+  .param{padding:9px 11px; border-right:1px solid var(--rule)}
+  .param:last-child{border-right:0}
+  .param span{display:block;font-size:9.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .param b{display:block;font-family:var(--font-mono);font-weight:500;font-size:11.5px;letter-spacing:-.02em;margin-top:2px}
+
+  /* ---------- section ---------- */
+  .section{margin-top:46px}
+  .section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+  .section-head h2{font-size:15px;font-weight:600;letter-spacing:.01em;margin:0}
+  .section-head .count{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+  .section-head .spacer{flex:1}
+  .text-btn{font-size:11.5px;color:var(--ink-2);padding:4px 2px;border-bottom:1px solid transparent;transition:border-color .18s var(--ease),color .18s var(--ease)}
+  .text-btn:hover{color:var(--ink);border-color:var(--rule-strong)}
+  .text-btn + .text-btn{margin-left:14px}
+
+  /* current task */
+  .current-card{
+    position:relative; border:1px solid var(--rule); border-radius:10px;
+    background:linear-gradient(180deg, rgba(252,250,245,.9), rgba(252,250,245,.55));
+    padding:18px 20px 0; box-shadow:0 1px 0 rgba(255,255,255,.8) inset;
+  }
+  .task{display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:16px; align-items:center; padding-bottom:16px}
+  .mini-cover{width:64px;height:64px;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px rgba(27,26,23,.1), 0 10px 18px -14px rgba(60,50,35,.6)}
+  .mini-cover svg{display:block;width:100%;height:100%}
+  .task-title{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-size:19px;font-weight:600;line-height:1.25}
+  .badge{
+    font-family:var(--font-mono);font-size:9.5px;letter-spacing:.04em;padding:3px 7px;border-radius:999px;
+    background:var(--accent-soft);color:var(--accent);border:1px solid rgba(47,93,78,.18);font-weight:500;
+  }
+  .badge.ghost{background:transparent;color:var(--muted);border-color:var(--rule)}
+  .task-sub{font-size:11.5px;color:var(--muted);margin-top:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .task-sub .sep{width:2px;height:2px;border-radius:50%;background:var(--muted);opacity:.6}
+
+  .pipeline{display:flex;align-items:center;gap:0;margin-top:14px}
+  .step{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .step .pin{width:7px;height:7px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--paper-raised);position:relative;flex:none}
+  .step.done .pin{background:var(--accent);border-color:var(--accent)}
+  .step.done{color:var(--ink-2)}
+  .step.active .pin{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,93,78,.14)}
+  .step.active .pin::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(47,93,78,.35);animation:breathe 2.4s var(--ease) infinite}
+  .step.active{color:var(--accent);font-weight:500}
+  .step-line{width:26px;height:1px;background:var(--rule);margin:0 9px;flex:none}
+  .step-line.done{background:rgba(47,93,78,.4)}
+  @keyframes breathe{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:.25;transform:scale(1.25)}}
+
+  .task-side{text-align:right;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+  .pct{font-size:26px;font-weight:500;letter-spacing:-.04em;line-height:1;color:var(--ink)}
+  .pct small{font-size:12px;color:var(--muted);margin-left:2px}
+  .task-side .meta{font-size:10.5px;color:var(--muted)}
+  .task-actions{display:flex;gap:4px;margin-top:2px}
+  .task-actions .icon-btn{width:28px;height:28px;border:1px solid transparent}
+  .task-actions .icon-btn:hover{border-color:var(--rule);background:transparent}
+
+  .bar{height:2px;background:var(--paper-sunken);margin:0 -20px;overflow:hidden;border-radius:0 0 10px 10px}
+  .bar span{display:block;height:100%;background:var(--accent);width:62.4%;position:relative;transition:width .5s var(--ease)}
+  .bar span::after{content:"";position:absolute;right:0;top:-1px;bottom:-1px;width:40px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45));animation:glide 2.6s var(--ease) infinite}
+  @keyframes glide{0%{transform:translateX(-36px);opacity:0}40%{opacity:1}100%{transform:translateX(10px);opacity:0}}
+
+  /* notice */
+  .notice{
+    display:flex;align-items:flex-start;gap:11px; margin-top:14px; padding:11px 14px;
+    border-left:2px solid var(--danger); background:rgba(163,59,42,.045); border-radius:0 6px 6px 0;
+    font-size:11.5px; color:var(--ink-2);
+  }
+  .notice svg{width:15px;height:15px;stroke:var(--danger);fill:none;stroke-width:1.7;flex:none;margin-top:1px}
+  .notice b{color:var(--danger);font-weight:500}
+  .notice .text-btn{margin-left:auto;color:var(--danger);flex:none}
+
+  /* queue */
+  .queue{border-top:1px solid var(--rule-strong)}
+  .qhead,.qrow{
+    display:grid; grid-template-columns:38px minmax(0,1fr) 118px 138px 74px; gap:12px; align-items:center;
+  }
+  .qhead{padding:10px 10px 10px 0; border-bottom:1px solid var(--rule); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  .qrow{padding:13px 10px 13px 0; border-bottom:1px solid var(--rule); transition:background .18s var(--ease)}
+  .qrow:hover{background:rgba(252,250,245,.72)}
+  .qrow .idx{font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center}
+  .qtitle{display:flex;align-items:center;gap:10px;min-width:0}
+  .qcover{width:36px;height:36px;border-radius:3px;overflow:hidden;flex:none;box-shadow:0 0 0 1px rgba(27,26,23,.08)}
+  .qcover svg{display:block;width:100%;height:100%}
+  .qname{font-size:13px;font-weight:500;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qartist{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qspec{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-2);letter-spacing:-.01em}
+  .qspec small{display:block;font-size:9.5px;color:var(--muted)}
+  .qstate{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--ink-2)}
+  .qstate .dot{width:5px;height:5px}
+  .qstate.queued{color:var(--muted)}
+  .qstate.queued .dot{background:var(--muted);opacity:.5}
+  .qstate.done{color:var(--accent)}
+  .qstate .p{font-family:var(--font-mono);font-size:10px;color:var(--muted)}
+  .qactions{display:flex;justify-content:flex-end;gap:2px;opacity:.55;transition:opacity .18s var(--ease)}
+  .qrow:hover .qactions{opacity:1}
+  .qactions .icon-btn{width:26px;height:26px}
+  .qactions svg{width:14px;height:14px}
+
+  /* ---------- inspector ---------- */
+  .inspector{
+    border-left:1px solid var(--rule); background:rgba(252,250,245,.42);
+    padding:22px 22px 26px; overflow-y:auto; min-height:0;
+  }
+  .insp-head{display:flex;align-items:baseline;gap:10px;margin-bottom:20px}
+  .insp-head h2{font-size:13px;font-weight:600;margin:0;letter-spacing:.02em}
+  .insp-head .spacer{flex:1}
+  .insp-head .text-btn{font-size:10.5px}
+  .field{margin-bottom:20px}
+  .field > label{display:flex;align-items:baseline;gap:8px;font-size:10.5px;color:var(--muted);letter-spacing:.05em;margin-bottom:8px}
+  .field > label .hint{margin-left:auto;font-family:var(--font-mono);font-size:9.5px;letter-spacing:0;color:var(--muted)}
+  .segmented{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule-strong);border-radius:7px;overflow:hidden;background:var(--paper-raised)}
+  .segmented button{padding:7px 0;font-size:10.5px;color:var(--ink-2);border-right:1px solid var(--rule);transition:background .18s var(--ease),color .18s var(--ease)}
+  .segmented button:last-child{border-right:0}
+  .segmented button.on{background:var(--accent);color:var(--accent-ink)}
+  .segmented button:not(.on):hover{background:rgba(27,26,23,.045)}
+  .path{
+    display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--rule);border-radius:7px;
+    background:var(--paper-raised);font-family:var(--font-mono);font-size:10.5px;color:var(--ink-2);
+  }
+  .path span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .path button{color:var(--muted);display:grid;place-items:center}
+  .path svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .filename{
+    margin-top:8px;font-family:var(--font-mono);font-size:10px;color:var(--muted);
+    padding:6px 9px;border-left:1px solid var(--rule);line-height:1.5;
+  }
+  .row-switch{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rule)}
+  .row-switch:last-child{border-bottom:0}
+  .row-switch .lbl{font-size:11.5px;color:var(--ink-2)}
+  .switch{width:30px;height:17px;border-radius:999px;background:var(--paper-sunken);border:1px solid var(--rule-strong);position:relative;transition:background .2s var(--ease),border-color .2s var(--ease);flex:none}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--paper-raised);box-shadow:0 1px 2px rgba(0,0,0,.18);transition:transform .2s var(--ease)}
+  .switch.on{background:var(--accent);border-color:var(--accent)}
+  .switch.on::after{transform:translateX(13px);background:#fff}
+  .stepper{display:flex;align-items:center;gap:2px;border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--paper-raised)}
+  .stepper button{width:26px;height:26px;display:grid;place-items:center;color:var(--muted)}
+  .stepper button:hover{background:rgba(27,26,23,.05);color:var(--ink)}
+  .stepper b{width:26px;text-align:center;font-family:var(--font-mono);font-weight:500;font-size:11px}
+  .insp-foot{margin-top:26px;padding-top:18px;border-top:1px solid var(--rule)}
+  .foot-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:var(--font-mono);margin-bottom:10px}
+  .foot-line{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);padding:5px 0}
+  .foot-line b{font-family:var(--font-mono);font-weight:500;color:var(--ink-2)}
+
+  @media (max-width:1180px){ .app{grid-template-columns:224px minmax(0,1fr)} .inspector{display:none} }
+  @media (max-width:920px){
+    .app{grid-template-columns:72px minmax(0,1fr)}
+    .rail{padding:18px 10px}
+    .brand-text,.nav span,.rail-stats,.account > :not(.avatar){display:none}
+    .brand{justify-content:center;padding-bottom:20px}
+    .nav a{grid-template-columns:1fr;place-items:center;padding:11px 0}
+    .nav a.active::before{left:-10px}
+    .account{grid-template-columns:1fr;place-items:center;padding:9px 0}
+    .hero{grid-template-columns:1fr;gap:30px}
+    .hero-art{justify-self:start;max-width:300px}
+    .page{padding:26px 20px 48px}
+    .topbar{padding:12px 20px}
+    .win-controls{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation-duration:.001ms !important;transition-duration:.001ms !important} }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ RAIL ============ -->
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M8 3h8l-1 6a5 5 0 0 1-6 0L8 3Z"/><path d="M12 9v11"/><path d="M8.5 20h7"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">开瓶器</div>
+        <div class="brand-sub">Bottlecap</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a class="active" href="#">
+        <svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg>
+        <span>下载</span><span class="nav-count">3</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
+        <span>歌单</span><span class="nav-count">18</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <span>搜索</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <span>历史</span><span class="nav-count">126</span>
+      </a>
+    </nav>
+
+    <div class="rail-stats">
+      <div class="stat"><b>42</b><span>本月曲目</span></div>
+      <div class="stat"><b>1.9 GB</b><span>已存音频</span></div>
+    </div>
+
+    <div class="rail-spacer"></div>
+
+    <button class="account" aria-label="账号与设置">
+      <div class="avatar">叙</div>
+      <div style="min-width:0">
+        <div class="account-name">陈叙</div>
+        <div class="account-meta"><span class="dot"></span>会员 · 218 天</div>
+      </div>
+      <svg class="account-more" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+    </button>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        <span>资料库</span>
+        <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+        <b>下载</b>
+      </div>
+      <div class="top-actions">
+        <div class="conn"><span class="dot"></span>汽水 3.5.1 已连接</div>
+        <button class="icon-btn" aria-label="设置">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.86a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+        </button>
+        <div class="win-controls" aria-hidden="true">
+          <button class="icon-btn"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+          <button class="icon-btn"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
+          <button class="icon-btn"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="page">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Qi Shui · 本地唱片</p>
+          <h1>把汽水里的歌，<br />装进唱片内页。</h1>
+          <p class="lede">
+            粘贴分享链接或 19 位 track_id。签名由本机客户端生成，
+            <em>FLAC 直接落盘</em>，封面、歌手与歌词一起写进文件。
+          </p>
+
+          <form class="paste" onsubmit="return false">
+            <label class="paste-field">
+              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>
+              <span class="sr">曲目链接或 ID</span>
+              <input value="https://qishui.douyin.com/s/iF2kQ9x/" spellcheck="false" />
+            </label>
+            <button class="btn btn-primary" type="submit">
+              解析
+              <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+          </form>
+
+          <div class="quick">
+            <span class="quick-label">最近</span>
+            <button class="chip">小半 <span class="mono">707910…3812</span></button>
+            <button class="chip">夏日漱石 <span class="mono">7264…0917</span></button>
+          </div>
+        </div>
+
+        <div class="hero-art">
+          <div class="sleeve">
+            <div class="cover">
+              <svg viewBox="0 0 300 300" role="img" aria-label="《小半》唱片封套">
+                <defs>
+                  <linearGradient id="paperCover" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#E7E0D1"/><stop offset="1" stop-color="#D6CEBC"/>
+                  </linearGradient>
+                  <clipPath id="circleClip"><circle cx="188" cy="126" r="86"/></clipPath>
+                </defs>
+                <rect width="300" height="300" fill="url(#paperCover)"/>
+                <circle cx="188" cy="126" r="86" fill="#2F5D4E"/>
+                <g clip-path="url(#circleClip)" opacity=".5">
+                  <circle cx="188" cy="126" r="66" fill="none" stroke="#E7E0D1" stroke-width=".8"/>
+                  <circle cx="188" cy="126" r="46" fill="none" stroke="#E7E0D1" stroke-width=".8"/>
+                  <circle cx="188" cy="126" r="26" fill="none" stroke="#E7E0D1" stroke-width=".8"/>
+                </g>
+                <circle cx="188" cy="126" r="7" fill="#D6CEBC"/>
+                <path d="M18 206h264" stroke="#1B1A17" stroke-opacity=".28" stroke-width=".8"/>
+                <text x="22" y="238" font-family="Noto Serif SC, Songti SC, serif" font-size="34" font-weight="600" fill="#1B1A17" letter-spacing="2">小半</text>
+                <text x="24" y="258" font-family="Geist, sans-serif" font-size="9.5" fill="#4E4A43" letter-spacing="3">陈粒 · CHEN LI</text>
+                <text x="276" y="258" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="8" fill="#4E4A43" letter-spacing="1">SIDE A · 297.24</text>
+                <text x="22" y="32" font-family="JetBrains Mono, monospace" font-size="8" fill="#4E4A43" letter-spacing="2">LUNA / 2026</text>
+                <text x="276" y="32" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="8" fill="#4E4A43" letter-spacing="2">863 KBPS</text>
+              </svg>
+            </div>
+            <div class="sleeve-caption">
+              <b>小半</b>
+              <span>FLAC · 32.0 MB</span>
+            </div>
+          </div>
+
+          <div class="params" aria-label="音频参数">
+            <div class="param"><span>编码</span><b>FLAC</b></div>
+            <div class="param"><span>码率</span><b>863k</b></div>
+            <div class="param"><span>采样</span><b>44.1k</b></div>
+            <div class="param"><span>时长</span><b>297.24s</b></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Current -->
+      <section class="section" aria-labelledby="currentTitle">
+        <div class="section-head">
+          <h2 id="currentTitle">正在写入</h2>
+          <span class="count">01 / 03</span>
+          <div class="spacer"></div>
+          <button class="text-btn">全部暂停</button>
+          <button class="text-btn">打开输出目录</button>
+        </div>
+
+        <div class="current-card">
+          <div class="task">
+            <div class="mini-cover" aria-hidden="true">
+              <svg viewBox="0 0 64 64">
+                <rect width="64" height="64" fill="#DCD4C3"/>
+                <circle cx="42" cy="26" r="19" fill="#2F5D4E"/>
+                <circle cx="42" cy="26" r="13" fill="none" stroke="#DCD4C3" stroke-width=".6"/>
+                <path d="M4 46h56" stroke="#1B1A17" stroke-opacity=".25" stroke-width=".6"/>
+                <text x="6" y="56" font-family="Noto Serif SC, serif" font-size="9" font-weight="600" fill="#1B1A17">小半</text>
+              </svg>
+            </div>
+
+            <div style="min-width:0">
+              <div class="task-title">
+                小半
+                <span class="badge">FLAC · 863 kbps</span>
+              </div>
+              <div class="task-sub">
+                <span>陈粒</span><span class="sep"></span><span>小半</span>
+                <span class="sep"></span><span class="mono">297.240 s</span>
+                <span class="sep"></span><span class="mono">32,043,005 B</span>
+              </div>
+
+              <div class="pipeline" role="list" aria-label="处理管线">
+                <div class="step done"><span class="pin"></span>解析</div><div class="step-line done"></div>
+                <div class="step done"><span class="pin"></span>签名</div><div class="step-line done"></div>
+                <div class="step done"><span class="pin"></span>取流</div><div class="step-line done"></div>
+                <div class="step active"><span class="pin"></span>解密</div><div class="step-line"></div>
+                <div class="step"><span class="pin"></span>封装</div>
+              </div>
+            </div>
+
+            <div class="task-side">
+              <div class="pct mono">62<small>.4%</small></div>
+              <div class="meta mono">4.2 MB/s · 00:14</div>
+              <div class="task-actions">
+                <button class="icon-btn" aria-label="暂停">
+                  <svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg>
+                </button>
+                <button class="icon-btn" aria-label="取消">
+                  <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="bar" role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+        </div>
+
+        <div class="notice">
+          <svg viewBox="0 0 24 24"><path d="M12 8v5"/><circle cx="12" cy="17" r=".5" fill="currentColor"/><path d="M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+          <span><b>刚才有一首没下成。</b>《爱到春潮滚滚来》只返回了试听片段（30.0 s / 204.0 s），该账号没有这首的完整权限。</span>
+          <button class="text-btn">查看原因</button>
+        </div>
+      </section>
+
+      <!-- Queue -->
+      <section class="section" aria-labelledby="queueTitle">
+        <div class="section-head">
+          <h2 id="queueTitle">队列</h2>
+          <span class="count">03</span>
+          <div class="spacer"></div>
+          <button class="text-btn">清空已完成</button>
+        </div>
+
+        <div class="queue">
+          <div class="qhead" aria-hidden="true">
+            <span style="text-align:center">#</span><span>曲目</span><span>规格</span><span>阶段</span><span style="text-align:right">操作</span>
+          </div>
+
+          <div class="qrow">
+            <div class="idx">01</div>
+            <div class="qtitle">
+              <div class="qcover" aria-hidden="true">
+                <svg viewBox="0 0 36 36"><rect width="36" height="36" fill="#DCD4C3"/><circle cx="24" cy="14" r="11" fill="#2F5D4E"/><path d="M2 27h32" stroke="#1B1A17" stroke-opacity=".25" stroke-width=".5"/></svg>
+              </div>
+              <div style="min-width:0">
+                <div class="qname">小半</div>
+                <div class="qartist">陈粒 · 小半</div>
+              </div>
+            </div>
+            <div class="qspec">FLAC · 863k<small>44.1 kHz / 32.0 MB</small></div>
+            <div class="qstate"><span class="dot"></span>解密中 <span class="p">62%</span></div>
+            <div class="qactions">
+              <button class="icon-btn" aria-label="暂停"><svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg></button>
+              <button class="icon-btn" aria-label="取消"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+            </div>
+          </div>
+
+          <div class="qrow">
+            <div class="idx">02</div>
+            <div class="qtitle">
+              <div class="qcover" aria-hidden="true">
+                <svg viewBox="0 0 36 36"><rect width="36" height="36" fill="#C9D2CC"/><path d="M0 28 12 12l10 10 6-7 8 13Z" fill="#2F5D4E" opacity=".85"/><circle cx="27" cy="9" r="4" fill="#1B1A17" opacity=".55"/></svg>
+              </div>
+              <div style="min-width:0">
+                <div class="qname">夏日漱石</div>
+                <div class="qartist">橘子海 · 浪潮上岸</div>
+              </div>
+            </div>
+            <div class="qspec">AAC 320k<small>→ MP3 320k</small></div>
+            <div class="qstate queued"><span class="dot"></span>排队 <span class="p">#2</span></div>
+            <div class="qactions">
+              <button class="icon-btn" aria-label="置顶"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+              <button class="icon-btn" aria-label="移除"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+            </div>
+          </div>
+
+          <div class="qrow">
+            <div class="idx">03</div>
+            <div class="qtitle">
+              <div class="qcover" aria-hidden="true">
+                <svg viewBox="0 0 36 36"><rect width="36" height="36" fill="#D8C8B4"/><rect x="6" y="6" width="24" height="24" fill="none" stroke="#2F5D4E" stroke-width="1.2"/><path d="M12 24 24 12" stroke="#1B1A17" stroke-width=".8"/><circle cx="18" cy="18" r="5" fill="#2F5D4E" opacity=".8"/></svg>
+              </div>
+              <div style="min-width:0">
+                <div class="qname">历历万乡</div>
+                <div class="qartist">陈粒 · 如也</div>
+              </div>
+            </div>
+            <div class="qspec">FLAC · 910k<small>48 kHz / 28.4 MB</small></div>
+            <div class="qstate done"><span class="dot"></span>完成 <span class="p">12:04</span></div>
+            <div class="qactions">
+              <button class="icon-btn" aria-label="在文件夹中显示"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></button>
+              <button class="icon-btn" aria-label="更多"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============ INSPECTOR ============ -->
+  <aside class="inspector" aria-label="输出设置">
+    <div class="insp-head">
+      <h2>输出设置</h2>
+      <div class="spacer"></div>
+      <button class="text-btn">重置</button>
+    </div>
+
+    <div class="field">
+      <label>格式 <span class="hint">对队列生效</span></label>
+      <div class="segmented" role="group" aria-label="输出格式">
+        <button class="on">原格式</button><button>FLAC</button><button>MP3</button><button>WAV</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>保存到</label>
+      <div class="path">
+        <span>D:\Music\Bottlecap</span>
+        <button aria-label="选择目录"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></button>
+      </div>
+      <div class="filename">{artist} - {title}.{ext}<br />陈粒 - 小半.flac</div>
+    </div>
+
+    <div class="field">
+      <label>元数据 <span class="hint">写入文件</span></label>
+      <div class="row-switch"><span class="lbl">封面与标签</span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
+      <div class="row-switch"><span class="lbl">歌词（QRC → LRC）</span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
+      <div class="row-switch"><span class="lbl">同时保存 .lrc</span><span class="switch" role="switch" aria-checked="false" tabindex="0"></span></div>
+    </div>
+
+    <div class="field">
+      <label>并发下载 <span class="hint">推荐 2</span></label>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="lbl" style="font-size:11.5px;color:var(--ink-2)">同时处理</span>
+        <div class="stepper">
+          <button aria-label="减少">–</button><b>02</b><button aria-label="增加">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="insp-foot">
+      <div class="foot-title">本次任务</div>
+      <div class="foot-line"><span>可用空间</span><b>214 GB</b></div>
+      <div class="foot-line"><span>预计写入</span><b>32.0 MB</b></div>
+      <div class="foot-line"><span>签名设备</span><b>3858…0567</b></div>
+      <div class="foot-line"><span>客户端</span><b>3.5.1 / Windows</b></div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+node_modules/
+out/
+release/
+dist/
+.tmp-test/
+test-electron/
+resources/bin/
+*.tgz
+*.log
+.DS_Store
+docs/app-*.png
